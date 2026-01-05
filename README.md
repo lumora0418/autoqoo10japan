@@ -1,0 +1,1 @@
+# autoqoo10japan
