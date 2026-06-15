@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>QLens — 소싱 모니터</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root {
+      --bg:#f1f5f9; --bg2:#fff; --bg3:#f8fafc; --border:#e2e8f0;
+      --blue:#3b82f6; --blue-dk:#1d4ed8; --blue-lt:#eff6ff;
+      --green:#10b981; --green-lt:#ecfdf5;
+      --red:#ef4444; --red-lt:#fef2f2;
+      --orange:#f59e0b; --orange-lt:#fffbeb;
+      --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+      --font:'Noto Sans KR',sans-serif; --mono:'JetBrains Mono',monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 14px;
+    }
+    .hdr {
+      background: linear-gradient(135deg, var(--blue-dk), var(--blue));
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+    .hdr h1 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .hdr p { font-size: 11px; opacity: 0.9; }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .price-row:last-child { border-bottom: none; }
+    .price-label { font-size: 12px; color: var(--text2); }
+    .price-value {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .price-diff {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .price-diff.up { background: var(--red-lt); color: var(--red); }
+    .price-diff.down { background: var(--green-lt); color: var(--green); }
+    .price-diff.same { background: var(--bg3); color: var(--text3); }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 6px;
+    }
+    .btn:hover { background: var(--blue-dk); transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--blue-lt); border-color: var(--blue); }
+    .btn-green { background: var(--green); }
+    .btn-green:hover { background: #059669; }
+    .btn-blue { background: var(--blue); }
+    .btn-blue:hover { background: #2563eb; }
+    .btn-blue:disabled { opacity: .4; cursor: not-allowed; }
+    .bundle-select, .bundle-input {
+      width: 100%; padding: 7px 9px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-size: 12px; font-family: inherit;
+    }
+    .bundle-select:focus, .bundle-input:focus { outline: none; border-color: var(--blue); }
+    .status {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+    .status.idle { background: var(--bg3); color: var(--text2); }
+    .status.scanning { background: var(--blue-lt); color: var(--blue-dk); }
+    .status.success { background: var(--green-lt); color: var(--green); }
+    .status.error { background: var(--red-lt); color: var(--red); }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text3);
+      padding: 4px 0;
+    }
+    .empty {
+      text-align: center;
+      padding: 30px 14px;
+      color: var(--text3);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .url-display {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      word-break: break-all;
+      background: var(--bg3);
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 6px 0;
+    }
+    .url-row { display: flex; align-items: stretch; gap: 6px; margin: 6px 0; }
+    .url-row .url-display { flex: 1; margin: 0; }
+    .url-copy-btn {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      min-width: 34px;
+      background: var(--bg3);
+      border: 1px solid var(--border, #2e2e45);
+      border-radius: 4px;
+      color: var(--text2, #8888aa);
+      font-size: 14px; cursor: pointer;
+      transition: all .12s;
+    }
+    .url-copy-btn:hover { border-color: var(--blue, #3d9eff); color: var(--blue, #3d9eff); background: var(--blue-lt, rgba(61,158,255,.1)); }
+    .url-copy-btn:active { transform: scale(.94); }
+    .url-copy-btn.copied { border-color: var(--green, #1fd96a); color: var(--green, #1fd96a); }
+    code { background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="hdr">
+    <h1>🔍 QLens — 소싱 모니터</h1>
+    <p>소싱 페이지의 현재 가격을 자동으로 추적합니다</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 현재 페이지</div>
+    <div id="currentPageInfo" class="empty">
+      <div class="empty-icon">🔗</div>
+      <p>QLens 상품관리에서 <strong>↗</strong> 버튼을<br>클릭하면 여기에 가격이 표시됩니다.</p>
+    </div>
+  </div>
+
+  <div id="resultArea" style="display:none">
+    <div class="card">
+      <div class="card-title">💰 가격 비교</div>
+      <div class="price-row">
+        <span class="price-label">시트 등록 가격</span>
+        <span class="price-value" id="sheetPrice">-</span>
+      </div>
+      <div class="price-row">
+        <span class="price-label">현재 페이지 가격</span>
+        <span class="price-value" id="currentPrice">-</span>
+      </div>
+      <div id="qtyAdjustRow" style="display:none;font-size:11px;color:var(--text2);padding:6px 0;border-top:1px dashed var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span>구성수량 (1+N 일 때)</span>
+          <span style="font-family:var(--mono);font-size:13px;font-weight:600" id="qtyDisplay">1개</span>
+        </div>
+        <div style="margin-top:4px;font-size:10px;color:var(--text3)">
+          실제 단가 = 페이지 가격 ÷ 구성수량
+        </div>
+      </div>
+      <div class="price-row">
+        <span class="price-label">차이</span>
+        <span id="priceDiffArea">-</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🛠 액션</div>
+      <button class="btn btn-green" id="btnUpdate">📝 시트 가격 업데이트</button>
+      <button class="btn btn-ghost" id="btnRefresh">🔄 가격 다시 읽기</button>
+    </div>
+
+    <!-- ★ v1.9.11: 기획세트 빌더 -->
+    <div class="card" id="bundleBuilderCard" style="display:none">
+      <div class="card-title">📦 기획세트에 추가</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.4">
+        이 페이지의 상품을 기존 기획세트의 구성품으로 추가합니다.
+      </div>
+      <div class="meta-row" style="flex-direction:column;align-items:stretch;gap:5px">
+        <span style="font-size:11px;color:var(--text3)">세트 선택</span>
+        <select id="bundleSelect" class="bundle-select">
+          <option value="">— 기획세트 선택 —</option>
+        </select>
+      </div>
+      <div class="meta-row" style="flex-direction:column;align-items:stretch;gap:5px;margin-top:6px">
+        <span style="font-size:11px;color:var(--text3)">수량</span>
+        <input type="number" id="bundleQty" value="1" min="1" step="1" class="bundle-input">
+      </div>
+      <div class="meta-row" style="margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px">
+          <input type="checkbox" id="bundleIsFree"> 증정품 (가격 합산 제외)
+        </label>
+      </div>
+      <button class="btn btn-blue" id="btnAddToBundle" style="margin-top:8px" disabled>+ 이 구성품을 세트에 추가</button>
+      <div id="bundleAddResult" style="font-size:11px;margin-top:6px;text-align:center"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📄 상세 정보</div>
+      <div class="meta-row">
+        <span>상품명</span>
+        <span id="metaName" style="text-align:right;max-width:60%">-</span>
+      </div>
+      <div class="meta-row">
+        <span>소싱처</span>
+        <span id="metaSite">-</span>
+      </div>
+      <div class="meta-row">
+        <span>마지막 확인</span>
+        <span id="metaTime">-</span>
+      </div>
+      <div class="url-row">
+        <div class="url-display" id="metaUrl"></div>
+        <button class="url-copy-btn" id="btnCopyUrl" title="이 페이지 링크 복사 (소싱처 URL 붙여넣기용)">📋</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusBar" class="status idle">⏳ 대기 중</div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

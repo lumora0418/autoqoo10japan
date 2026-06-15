@@ -1,0 +1,103 @@
+{
+  "manifest_version": 3,
+  "name": "QLens",
+  "version": "1.9.30",
+  "description": "Qoo10 Japan 판매 데이터 분석 대시보드 — 상품·주문·수익을 한눈에",
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "notifications",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://api.qoo10.jp/*",
+    "https://qsm.qoo10.jp/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.openai.com/*",
+    "https://api.groq.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.frankfurter.app/*",
+    "https://open.er-api.com/*",
+    "https://www.qoo10.jp/*",
+    "https://qoo10analytics.qoo10.jp/*",
+    "https://analytics.qoo10.jp/*",
+    "https://seller.qoo10.jp/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*",
+    "https://*.oliveyoung.co.kr/*",
+    "https://*.naver.com/*",
+    "https://smartstore.naver.com/*",
+    "https://brand.naver.com/*",
+    "https://*.coupang.com/*",
+    "https://*.musinsa.com/*",
+    "https://*.kurly.com/*",
+    "https://*.daiso.co.kr/*",
+    "https://*.11st.co.kr/*",
+    "https://*.gmarket.co.kr/*",
+    "https://*.themedicube.co.kr/*",
+    "https://*.vt-cosmetics.com/*",
+    "https://*.anua.kr/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "QLens — Qoo10 판매 분석",
+    "default_icon": {
+      "16": "assets/icons/lens-16.png",
+      "32": "assets/icons/lens-32.png",
+      "48": "assets/icons/lens-48.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/lens-16.png",
+    "32": "assets/icons/lens-32.png",
+    "48": "assets/icons/lens-48.png",
+    "128": "assets/icons/lens-128.png"
+  },
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dashboard/*",
+        "pages/*",
+        "assets/*",
+        "Q10Auto_QSMLens_v1.5b.gs"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "externally_connectable": {
+    "ids": [
+      "*"
+    ]
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.oliveyoung.co.kr/*",
+        "https://smartstore.naver.com/*",
+        "https://brand.naver.com/*",
+        "https://shopping.naver.com/*",
+        "https://*.coupang.com/*",
+        "https://*.musinsa.com/*",
+        "https://*.kurly.com/*",
+        "https://*.daiso.co.kr/*",
+        "https://*.themedicube.co.kr/*",
+        "https://*.vt-cosmetics.com/*",
+        "https://*.anua.kr/*"
+      ],
+      "js": [
+        "content/price_scraper.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

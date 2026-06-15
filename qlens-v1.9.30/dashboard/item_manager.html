@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QLens — 상품 가격관리</title>
+  <style>
+    @import url('https://cdn.jsdelivr.net/npm/@sunn-us/pretendard@1.3.9/dist/web/static/pretendard.min.css');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    /* Noto Sans KR (구글 무료) + JetBrains Mono (숫자) */
+    :root {
+      --bg:#f1f5f9; --bg2:#fff; --bg3:#f8fafc; --bg4:#f0f4f8;
+      --border:#e2e8f0; --shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+      --shadow-lg:0 4px 24px rgba(0,0,0,.10);
+      --blue:#3b82f6; --blue-dk:#1d4ed8; --blue-lt:#eff6ff;
+      --green:#10b981; --green-lt:#ecfdf5;
+      --red:#ef4444; --red-lt:#fef2f2;
+      --orange:#f59e0b; --orange-lt:#fffbeb;
+      --purple:#8b5cf6; --purple-lt:#f5f3ff;
+      --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+      --mega-pon:#2563eb; --mega-pon-lt:#dbeafe;
+      --mega-wari:#dc2626; --mega-wari-lt:#fee2e2;
+      --sheet:#34a853; --sheet-lt:#e8f5e9;
+      --font:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+      --mono:'JetBrains Mono','Fira Mono',monospace; --radius:12px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.6;letter-spacing:-0.01em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+    /* HEADER */
+    .hdr{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;padding:0 24px;height:58px}
+    .hdr-logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:900;color:var(--blue-dk);text-decoration:none}
+    .hdr-logo-icon{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:17px}
+    .hdr-divider{width:1px;height:20px;background:var(--border)}
+    .hdr-page{font-size:14px;font-weight:700;color:var(--text2)}
+    .hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .btn-hdr{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .btn-hdr:hover{border-color:var(--blue);color:var(--blue)}
+    .btn-hdr.primary{background:linear-gradient(135deg,var(--blue-dk),var(--blue));border-color:transparent;color:#fff}
+    .btn-hdr.primary:hover{transform:translateY(-1px)}
+    .btn-hdr.sheet{background:linear-gradient(135deg,#1a73e8,var(--sheet));border-color:transparent;color:#fff}
+    .btn-hdr.sheet:hover{transform:translateY(-1px)}
+    /* ★ Undo/Redo 버튼 — 보라색 강조, 카운트 표시 */
+    .btn-hdr.btn-undo{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:transparent;color:#fff;position:relative}
+    .btn-hdr.btn-undo:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(168,85,247,.35)}
+    .btn-hdr.btn-undo:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;opacity:.5}
+    .btn-hdr.btn-undo .undo-count{font-size:10px;font-weight:700;background:rgba(255,255,255,.25);padding:1px 5px;border-radius:8px;min-width:14px;text-align:center}
+    .btn-hdr.btn-undo:disabled .undo-count{display:none}
+    .btn-hdr.sheet.connected{background:var(--sheet-lt);color:#1b5e20;border:1.5px solid var(--sheet)}
+
+    .page{max-width:1700px;margin:0 auto;padding:20px 24px 60px}
+
+    /* 시트 연결 상태바 */
+    .sheet-status{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:16px;box-shadow:var(--shadow);flex-wrap:wrap}
+    .sheet-status .icon{font-size:20px}
+    .sheet-status .label{font-size:13px;font-weight:700}
+    .sheet-status .sub{font-size:11px;color:var(--text3)}
+    .sheet-status .actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+    .ss-btn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font);transition:all .15s;white-space:nowrap}
+    .ss-btn:hover{border-color:var(--blue);color:var(--blue)}
+    .ss-btn.primary{background:linear-gradient(135deg,#1a73e8,var(--sheet));color:#fff;border-color:transparent}
+    .ss-btn.primary:hover{transform:translateY(-1px)}
+    .ss-link{font-size:11px;color:var(--sheet);text-decoration:none}
+    .ss-link:hover{text-decoration:underline}
+
+    /* 행사 설정 */
+    /* ★ v1.9.13 — 모드 카드 컴팩트화 */
+    .event-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+    @media(max-width:1000px){.event-panel{grid-template-columns:1fr}}
+    .event-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;gap:6px}
+    .event-card.active-pon{border-color:var(--mega-pon);box-shadow:0 0 0 2px rgba(37,99,235,.08)}
+    .event-card.active-wari{border-color:var(--mega-wari);box-shadow:0 0 0 2px rgba(220,38,38,.08)}
+    .event-card.active-normal{border-color:var(--green);box-shadow:0 0 0 2px rgba(16,185,129,.08)}
+    .event-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;user-select:none}
+    .event-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:14px;font-size:10.5px;font-weight:800;margin:0;flex-shrink:0}
+    .badge-normal{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+    .badge-pon   {background:rgba(37,99,235,.12);color:var(--mega-pon);border:1px solid rgba(37,99,235,.3)}
+    .badge-wari  {background:rgba(220,38,38,.12);color:var(--mega-wari);border:1px solid rgba(220,38,38,.3)}
+    .event-toggle{font-size:11px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;transition:background .12s;flex-shrink:0}
+    .event-toggle:hover{background:var(--bg3);color:var(--text)}
+    .event-body{display:none}
+    .event-card.expanded .event-body{display:flex;flex-direction:column;gap:6px}
+    .event-title{font-size:11px;font-weight:700;color:var(--text2);margin:0}
+    .event-desc{font-size:10.5px;color:var(--text3);line-height:1.45;margin:0;padding:6px 8px;background:var(--bg3);border-radius:5px}
+    .rates-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .rate-item{display:flex;flex-direction:column;gap:2px}
+    .rate-label{font-size:9.5px;color:var(--text3);font-weight:600}
+    .rate-input-row{display:flex;align-items:center;gap:3px}
+    .rate-input{width:100%;padding:4px 7px;background:var(--bg);border:1px solid var(--border);border-radius:5px;font-size:11.5px;font-weight:700;font-family:var(--mono);color:var(--text);text-align:right}
+    .rate-input:focus{outline:none;border-color:var(--blue)}
+    .rate-unit{font-size:10px;color:var(--text3);font-weight:600;min-width:14px;text-align:center}
+    .event-btn{width:100%;padding:7px;border-radius:6px;border:none;font-size:11.5px;font-weight:800;cursor:pointer;font-family:var(--font);transition:all .15s}
+    .event-btn.pon{background:linear-gradient(135deg,var(--mega-pon),#3b82f6);color:#fff}
+    .event-btn.wari{background:linear-gradient(135deg,var(--mega-wari),#f97316);color:#fff}
+    .event-btn.normal{background:linear-gradient(135deg,#059669,var(--green));color:#fff}
+    .event-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.2)}
+    /* 모드 표시 미니 칩 (헤드 우측) */
+    .event-mode-chip{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:8px;font-family:var(--mono)}
+    .event-mode-chip.active{background:var(--green);color:#fff}
+    .event-mode-chip.idle{background:var(--bg3);color:var(--text3)}
+    /* 요약 바 */
+    .summary-bar{display:flex;align-items:center;gap:14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
+    .summary-item{display:flex;align-items:center;gap:6px;font-size:12px}
+    .summary-dot{width:10px;height:10px;border-radius:50%}
+    .summary-val{font-weight:800;font-family:var(--mono)}
+    .summary-bar .sep{width:1px;height:14px;background:var(--border)}
+    .mode-indicator{margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800}
+    .mode-none{background:var(--bg3);color:var(--text3)}
+    .mode-pon{background:var(--mega-pon-lt);color:var(--mega-pon)}
+    .mode-wari{background:var(--mega-wari-lt);color:var(--mega-wari)}
+
+    /* 툴바 */
+    .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .tb-search{padding:7px 12px;background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:var(--font);flex:1;min-width:200px;max-width:280px}
+    .tb-search:focus{outline:none;border-color:var(--blue)}
+    .tb-select{padding:7px 10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer}
+    .tb-btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font);transition:all .15s;white-space:nowrap}
+    .tb-btn:hover{border-color:var(--blue);color:var(--blue)}
+    .tb-count{font-size:11px;color:var(--text3);margin-left:auto}
+
+    /* 테이블 */
+    .product-table-wrap{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .tbl-scroll{overflow:auto;max-height:calc(100vh - 460px);min-height:300px}
+    table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+    thead{position:sticky;top:0;z-index:2;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%)}
+    thead th{padding:12px 8px;font-weight:700;color:var(--text2);font-size:11.5px;letter-spacing:.3px;border-bottom:2px solid var(--border);white-space:nowrap;background:transparent;vertical-align:middle;line-height:1.4;text-align:center}
+    thead th .th-sub{display:block;font-size:9.5px;font-weight:500;opacity:.7;margin-top:3px;letter-spacing:.2px;text-transform:none;color:var(--text3)}
+    /* 헤더는 가운데 정렬 기본, td는 컬럼 클래스의 정렬 따름 (정렬은 v1.9.17 블록에서 통합 관리) */
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    tbody tr.selected-row{background:rgba(61,158,255,.07)}
+    tbody tr.dirty-row{background:rgba(255,122,47,.06)}
+    /* ─── 테이블 컬럼 정의 (14컬럼) ─────────────────────────── */
+    /* ★ v1.9.17 — table-layout: fixed + colgroup 으로 행별 정렬 어긋남 영구 해결
+     * 원리: table-layout: fixed면 컬럼 폭이 행의 내용과 무관하게 colgroup/첫 행의 width로 결정됨.
+     * 결과: 어떤 셀에 긴 URL이 들어가도 다른 행/컬럼 정렬에 영향 없음. */
+    .tbl-scroll{overflow-x:auto;overflow-y:visible}
+    .tbl-scroll table{width:100%;min-width:1130px;table-layout:fixed;border-collapse:collapse}
+
+    /* colgroup col 폭 — 단일 진실 (Source of Truth) */
+    .col-check       {width:32px}
+    .col-product     {width:auto}   /* 남는 공간 모두 흡수 — 소싱처 컬럼 축소로 더 많이 확보됨 */
+    .col-source      {width:104px}  /* ★ v1.9.19: URL input 제거 → 버튼 2개만 (170→104px) */
+    .col-price-krw   {width:82px}
+    .col-weight      {width:76px}
+    .col-total-cost  {width:76px}
+    .col-qsm-price   {width:116px}
+    .col-carrier     {width:68px}
+    .col-margin-rate {width:94px}
+    .col-revenue     {width:76px}
+    .col-profit      {width:74px}
+    .col-margin      {width:56px}
+    .col-status      {width:66px}
+    .col-action      {width:120px}
+
+    /* td 폭은 col이 제어하지만, 셀 내부 컨텐츠는 overflow 처리 */
+    tbody td{padding:11px 10px;vertical-align:middle;border-bottom:1px solid rgba(46,46,69,.5);overflow:hidden}
+    tbody td .item-link,
+    tbody td .source-url-row input{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* td 정렬 — th와 정확히 같은 정렬 (가운데 정렬 thead와 동일하게 td도 클래스로 제어) */
+    .th-check, .col-check, .td-check{text-align:center}
+    .td-right{text-align:right}
+    .td-center{text-align:center}
+    .td-left{text-align:left}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+    tbody tr:last-child{border-bottom:none}
+    .td-check{text-align:center}
+    .td-mono{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600}
+    .td-right{text-align:right}
+    .td-center{text-align:center}
+    .item-name{font-weight:600;line-height:1.45;font-size:13px;color:var(--text);display:flex;align-items:center;gap:5px;width:100%}
+    .item-link{color:var(--text);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;display:block}
+    .item-meta{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;margin-bottom:1px}
+    .meta-badge{font-size:9.5px;padding:1px 5px;border-radius:3px;font-weight:600;white-space:nowrap}
+    .meta-badge.brand{background:rgba(61,158,255,.15);color:var(--blue);border:1px solid rgba(61,158,255,.3)}
+    .meta-badge.carrier{background:rgba(31,217,106,.12);color:var(--green);border:1px solid rgba(31,217,106,.25)}
+    .meta-badge.ship{background:rgba(255,122,47,.12);color:var(--orange);border:1px solid rgba(255,122,47,.25)}
+    .item-code{display:flex;align-items:center;gap:4px;margin-top:3px}
+    .item-code-num{font-size:12px;color:var(--text2);font-family:var(--mono);font-weight:600;white-space:nowrap;letter-spacing:0.02em}
+    .seller-code-input{font-size:11.5px;color:var(--text2);font-family:var(--mono);font-weight:500;background:transparent;border:none;border-bottom:1px dashed var(--border);outline:none;width:110px;padding:0 2px;transition:border-color .15s}
+    .seller-code-input:hover{border-bottom-color:var(--blue)}
+    .seller-code-input:focus{border-bottom:1.5px solid var(--blue);background:var(--blue-lt)}
+    .seller-code-input::placeholder{color:var(--text3);font-size:10px}
+    .seller-code-input.dirty{border-bottom-color:var(--orange)}
+    .item-link:hover{color:var(--blue)}
+    .btn-qsm-view{flex-shrink:0;font-size:10px;color:var(--text3);text-decoration:none;padding:1px 5px;border-radius:3px;border:1px solid var(--border);line-height:1.6;transition:all .12s;background:var(--bg2);white-space:nowrap}
+    .btn-qsm-view:hover{color:var(--blue);border-color:var(--blue);background:rgba(61,158,255,.08)}
+
+    .inline-input{width:100%;padding:6px 7px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:12.5px;font-family:var(--mono);color:var(--text);text-align:right;transition:border-color .12s;font-variant-numeric:tabular-nums;font-weight:600;min-width:0}
+    /* number 타입에서 스피너 화살표 제거 → 더 넓은 표시 공간 확보 */
+    .inline-input[type=number]::-webkit-outer-spin-button,
+    .inline-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    .inline-input[type=number]{-moz-appearance:textfield;appearance:textfield}
+    .inline-input:hover{border-color:var(--blue);background:var(--bg2)}
+    .inline-input:focus{outline:none;border-color:var(--blue);background:var(--bg2);box-shadow:0 0 0 2px rgba(61,158,255,.25)}
+    /* QSM 판매가 input — 더 강조 */
+    .qsm-price-input{border-color:rgba(61,158,255,.4) !important;background:rgba(61,158,255,.05) !important}
+    .qsm-price-input:focus{border-color:var(--green) !important;background:rgba(31,217,106,.08) !important;box-shadow:0 0 0 2px rgba(31,217,106,.3) !important}
+    .qsm-price-input.dirty{border-color:var(--orange) !important;background:rgba(255,122,47,.1) !important}
+    .inline-input.url{text-align:left;font-size:11px;font-family:var(--font);font-weight:500}
+    .inline-input.dirty{border-color:var(--orange);background:rgba(245,158,11,.05)}
+    /* 소싱처 셀 */
+    .source-cell{display:flex;flex-direction:column;gap:3px}
+    .source-url-row{display:flex;align-items:center;gap:4px}
+    .source-url-row .inline-input{flex:1;min-width:0}
+    .btn-open-url{flex-shrink:0;width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--bg2);color:var(--blue);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0;line-height:1}
+    .btn-open-url:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .btn-open-url:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+    .src-host{font-size:9px;color:var(--text3)}
+    /* 배송사 셀렉터 */
+    .carrier-select{width:100%;padding:5px 6px;background:var(--bg3);border:1px solid rgba(31,217,106,.3);border-radius:6px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:border-color .12s;appearance:none;-webkit-appearance:none;text-align:center}
+    .carrier-select:focus{outline:none;border-color:var(--green)}
+    .carrier-select.dirty{border-color:var(--orange);color:var(--orange)}
+    .carrier-select option{color:var(--text);background:var(--bg2);font-weight:600}
+
+    /* 가격 표시 */
+    .price-normal{color:var(--text);font-weight:700}
+    .price-pon{color:var(--mega-pon);font-weight:800}
+    .price-wari{color:var(--mega-wari);font-weight:800}
+    .price-calc{font-size:9px;color:var(--text3);font-weight:400;margin-top:1px}
+
+    /* ₩→¥ 환산 표시 */
+    .conv-jpy{font-size:9.5px;color:var(--blue);margin-top:2px;font-weight:600;font-family:var(--mono)}
+    .conv-jpy.qsm-ship{color:var(--orange)}
+    /* 배송비 불일치 경고 */
+    .ship-mismatch{font-size:9px;color:#ff3b3b;font-weight:700;margin-top:2px;line-height:1.3}
+
+    /* 비용 내역 셀 */
+    .cost-breakdown{font-size:10px;color:var(--text2);line-height:1.7}
+    .cost-row{display:flex;justify-content:space-between;gap:6px;align-items:center}
+    .cost-row .lbl{color:var(--text3);font-size:9.5px}
+    .cost-row .val{font-family:var(--mono);font-weight:600;font-size:11px;color:var(--text)}
+    .cost-row.total{border-top:1px solid var(--border);margin-top:2px;padding-top:3px}
+    .cost-row.total .val{color:var(--red);font-size:12px;font-weight:700}
+
+    /* 무게 입력 셀 */
+    .weight-cell{display:flex;flex-direction:column;gap:2px}
+    .weight-input-row{display:flex;align-items:center;gap:3px}
+    .weight-unit{font-size:10px;color:var(--text3);white-space:nowrap}
+    .ship-auto{font-size:9.5px;color:var(--blue);font-weight:600;margin-top:2px;font-family:var(--mono)}
+    .ship-auto.warn{color:var(--red)}
+
+    /* QSM가 셀 */
+    .qsm-price-cell{text-align:right}
+    .qsm-main{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text)}
+    .qsm-ship-fee{font-size:9.5px;color:var(--orange);font-family:var(--mono);margin-top:2px}
+
+    /* 판매액/이익 셀 */
+    .revenue-cell .rev-num{font-family:var(--mono);font-size:12.5px;font-weight:700}
+    .profit-num{font-family:var(--mono);font-size:13px;font-weight:800}
+    .profit-num.pos{color:#059669}
+    .profit-num.neg{color:var(--red)}
+    .vat-small{font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+    /* ★ v1.9.30: 셀·헤더 보조 주석 숨김 (소싱가¥환산/무게자동/총비용₩/QSM고객배송/VAT환급/이익₩ 등) */
+    thead th .th-sub:not(#marginModeHint){display:none}
+    .conv-jpy,.ship-auto,.cost-krw,.qsm-ship-fee,.rec-hint,.vat-small{display:none}
+
+    /* 추천가 셀 */
+    .rec-price-cell{text-align:right}
+    .rec-main{font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--blue-dk)}
+    .rec-diff{font-size:9.5px;margin-top:2px;font-family:var(--mono);font-weight:600}
+    .rec-diff.up{color:#059669}
+    .rec-diff.down{color:var(--red)}
+
+    /* 브랜드명 (상품셀 최상단) */
+    .brand-label{font-size:10.5px;font-weight:700;color:var(--purple);letter-spacing:0.01em;margin-bottom:2px}
+    .brand-none{font-size:9.5px;font-style:italic;color:var(--text3);margin-bottom:2px}
+
+    /* 이익 미니 표시 */
+    .profit-mini{font-size:9px;color:var(--text3);font-weight:400;margin-top:1px;font-family:var(--mono)}
+
+    /* 마진 배지 */
+    .margin-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9.5px;font-weight:700;letter-spacing:0.01em;vertical-align:middle}
+    .mbadge-loss{background:rgba(255,59,59,.18);color:#ff3b3b;border:1px solid rgba(255,59,59,.4)}
+    .mbadge-low {background:rgba(255,122,47,.15);color:#e07000;border:1px solid rgba(255,122,47,.35)}
+    .mbadge-ok  {background:rgba(31,217,106,.12);color:#059669;border:1px solid rgba(31,217,106,.3)}
+    .mbadge-high{background:rgba(31,217,106,.22);color:#027a48;border:1px solid rgba(31,217,106,.5)}
+
+    /* 행 전체 마진 하이라이트 */
+    tbody tr.margin-loss{background:rgba(255,59,59,.04) !important}
+    tbody tr.margin-loss:hover{background:rgba(255,59,59,.08) !important}
+    tbody tr.margin-low {background:rgba(255,122,47,.04) !important}
+    tbody tr.margin-low:hover{background:rgba(255,122,47,.08) !important}
+    tbody tr.margin-high{background:rgba(31,217,106,.04) !important}
+    tbody tr.margin-high:hover{background:rgba(31,217,106,.08) !important}
+
+    /* 역마진 행 — 왼쪽 테두리 강조 */
+    tbody tr.margin-loss td:first-child{border-left:3px solid #ff3b3b}
+    tbody tr.margin-high td:first-child{border-left:3px solid #1fd96a}
+    /* Q10 Auto 수신 상품 강조 */
+    tbody tr.from-q10{background:rgba(59,130,246,.04) !important;border-left:3px solid var(--blue) !important}
+    .q10-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;margin-bottom:3px;letter-spacing:.02em}
+    .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.01em}
+    .badge-s2{background:var(--green-lt);color:#059669;border:1px solid #a7f3d0}
+    .badge-s1{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+    .badge-s0{background:var(--orange-lt);color:#d97706;border:1px solid #fcd34d}
+    .badge-soldout{background:rgba(217,119,6,.15);color:#d97706;border:1px solid rgba(217,119,6,.45)}
+    /* ★ v1.9.30: 재고수량 표시 + 클릭 수정 */
+    .status-cell{line-height:1.3}
+    .stock-edit{display:inline-flex;align-items:center;gap:2px;margin-top:4px;padding:2px 7px;border-radius:12px;font-size:10.5px;font-weight:700;font-family:var(--mono);color:var(--text2);background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .12s}
+    .stock-edit:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+    .stock-edit.zero{color:#d97706;border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.1)}
+    /* 액션 (v1.9.10) — 스플릿 버튼: 메인 액션 + ▼ 드롭다운 */
+    .row-action-wrap{position:relative;display:inline-flex;align-items:stretch;gap:0;background:var(--bg3);border:1px solid var(--border);border-radius:7px;overflow:visible;transition:border-color .12s}
+    .row-action-wrap:hover{border-color:var(--text3)}
+    .row-action-primary{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px 0 0 6px;font-size:11.5px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text);font-family:var(--font);transition:all .12s;white-space:nowrap}
+    .row-action-primary .action-icon{font-size:9.5px;opacity:.6;color:var(--green)}
+    .row-action-primary:hover:not(.disabled){background:var(--bg4);color:var(--blue)}
+    .row-action-primary:hover:not(.disabled) .action-icon{opacity:1;color:var(--blue)}
+    .row-action-primary.disabled{color:var(--text3);cursor:default}
+    .row-action-primary.disabled .action-icon{color:var(--text3);opacity:.5}
+    .row-action-more{padding:7px 8px;border-radius:0 6px 6px 0;border:none;border-left:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;font-weight:700;cursor:pointer;transition:all .12s;line-height:1;display:flex;align-items:center;justify-content:center}
+    .row-action-more:hover{background:var(--bg4);color:var(--text)}
+    .row-action-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:220px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.5);padding:5px;z-index:10;overflow:hidden}
+    .row-action-menu.show{display:block;animation:fadeInDown .15s ease}
+    @keyframes fadeInDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+    .row-action-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 11px;border:none;border-radius:5px;background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;text-align:left;font-family:var(--font);transition:background .1s;white-space:nowrap}
+    .row-action-item:hover{background:var(--bg3)}
+    .row-action-item .mi{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+    .row-action-item.warn{color:var(--orange)}
+    .row-action-item.warn:hover{background:rgba(255,122,47,.1)}
+    .row-action-item.danger{color:var(--red)}
+    .row-action-item.danger:hover{background:rgba(255,59,59,.1)}
+    .row-action-item.ok{color:var(--green)}
+    .row-action-item.ok:hover{background:rgba(31,217,106,.1)}
+    .row-action-divider{height:1px;background:var(--border);margin:4px 6px}
+    /* 옛 row-btn 클래스 호환성 유지 */
+    .row-btns{display:flex;align-items:center;justify-content:center;gap:4px}
+    .row-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;font-family:var(--font);transition:all .12s;white-space:nowrap}
+    .row-btn-apply{border-color:var(--blue);color:var(--blue-dk);background:var(--blue-lt)}
+    .row-btn-apply:hover{background:var(--blue);color:#fff}
+    .row-btn-toggle{border-color:var(--border);color:var(--text2);background:var(--bg2)}
+    .row-btn-toggle:hover{border-color:var(--orange);color:#d97706}
+
+    /* ★ v1.9.11 — 기획세트 (Bundle) UI */
+    .bundle-toggle{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:5px;border:1px solid var(--blue);background:var(--blue-lt);color:var(--blue-dk);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .12s;margin-right:6px}
+    .bundle-toggle:hover{background:var(--blue);color:#fff}
+    .bundle-badge{font-size:10px;font-weight:800}
+    .bundle-tag{display:inline-block;font-size:9px;font-weight:700;color:#fff;background:linear-gradient(135deg,#7c3aed,#a855f7);padding:1px 6px;border-radius:8px;margin-left:5px;letter-spacing:.3px}
+    /* ★ v1.9.18 — tr::before 제거, td 좌측 보더로 대체 (tr position:relative은 브라우저별 깨짐) */
+    .bundle-row > td:first-child{box-shadow:inset 3px 0 0 0 #a855f7}
+    .bundle-expanded{background:rgba(124,58,237,.04)}
+    .bundle-child-row td, .bundle-child-footer td, .bundle-child-empty td{border-bottom:1px solid rgba(124,58,237,.15) !important;font-size:11.5px}
+    .bundle-child-footer td{border-bottom:2px solid var(--border) !important}
+
+    /* 벌크 액션 바 */
+    .bulk-bar{position:sticky;bottom:0;background:linear-gradient(135deg,var(--blue-dk),var(--blue));color:#fff;padding:11px 18px;display:none;align-items:center;gap:10px;border-top:2px solid rgba(255,255,255,.2);z-index:5;flex-wrap:wrap}
+    .bulk-bar.show{display:flex}
+    .bulk-info{font-size:13px;font-weight:700}
+    .bulk-btns{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+    .bulk-btn{padding:6px 13px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid rgba(255,255,255,.5);background:rgba(255,255,255,.1);color:#fff;font-family:var(--font);transition:all .15s;white-space:nowrap}
+    .bulk-btn:hover{background:rgba(255,255,255,.25)}
+    .bulk-btn.danger{border-color:rgba(255,100,100,.6);background:rgba(220,38,38,.2)}
+    .bulk-btn.warn{border-color:rgba(255,165,0,.6);background:rgba(255,140,0,.2)}
+    .bulk-btn.purple{border-color:rgba(160,100,255,.6);background:rgba(130,80,220,.2)}
+
+    /* 상태 버튼 (행 내) */
+    .row-btn-outofstock{border-color:var(--orange)!important;color:#d97706!important;background:var(--orange-lt)!important}
+    .row-btn-outofstock:hover{background:#fed7aa!important}
+    .row-btn-discontinued{border-color:var(--red)!important;color:#dc2626!important;background:var(--red-lt)!important}
+    .row-btn-discontinued:hover{background:#fecaca!important}
+    .row-btn-restock{border-color:var(--green)!important;color:#059669!important;background:var(--green-lt)!important}
+    .row-btn-restock:hover{background:#a7f3d0!important}
+    .row-btn-activate{border-color:var(--blue)!important;color:var(--blue-dk)!important;background:var(--blue-lt)!important}
+    .row-btn-activate:hover{background:#bfdbfe!important}
+
+    /* 재입고 수량 모달 */
+    .qty-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:400;backdrop-filter:blur(4px)}
+    .qty-modal-backdrop.show{display:flex}
+    .qty-modal-box{background:var(--bg2);border-radius:16px;padding:26px 24px;width:92%;max-width:440px;box-shadow:var(--shadow-lg);animation:popIn .2s cubic-bezier(.34,1.56,.64,1)}
+    .qty-modal-title{font-size:16px;font-weight:900;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+    .qty-modal-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px}
+    .qty-modal-items{max-height:120px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11px;color:var(--text2)}
+    .qty-modal-item{padding:3px 0;border-bottom:1px solid var(--border)}
+    .qty-modal-item:last-child{border-bottom:none}
+    .qty-input-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .qty-input-label{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
+    .qty-input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;font-family:var(--mono);color:var(--text);text-align:center;outline:none;transition:border-color .15s}
+    .qty-input:focus{border-color:var(--green)}
+    .qty-input-unit{font-size:12px;color:var(--text2);white-space:nowrap}
+    .qty-modal-note{font-size:10.5px;color:var(--text3);background:var(--green-lt);border:1px solid #a7f3d0;border-radius:7px;padding:7px 10px;margin-bottom:14px;line-height:1.6}
+    .qty-modal-btns{display:flex;gap:8px}
+    .qty-modal-btn{flex:1;padding:11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:all .15s}
+    .qty-modal-btn.ghost{background:var(--bg3);border:1.5px solid var(--border);color:var(--text2)}
+    .qty-modal-btn.confirm{background:linear-gradient(135deg,#059669,var(--green));color:#fff}
+    .qty-modal-btn.confirm:hover{transform:translateY(-1px)}
+
+    /* 상태 배지 S3 단종 */
+    .badge-s3{background:#f5f3ff;color:#7c3aed;border:1px solid #c4b5fd}
+
+    /* 페이지네이션 */
+    .pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-top:1px solid var(--border)}
+    .pg-btn{padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font)}
+    .pg-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+    .pg-btn:disabled{opacity:.4;cursor:not-allowed}
+    .pg-info{font-size:11px;color:var(--text3);font-family:var(--mono)}
+
+    /* 오버레이 / 모달 / 토스트 */
+    .overlay{position:fixed;inset:0;background:rgba(248,250,252,.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+    .overlay.show{display:flex}
+    .spin{width:46px;height:46px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;margin-bottom:14px}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .ov-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:5px}
+    .ov-sub{font-size:12px;color:var(--text2);margin-bottom:8px}
+    .ov-progress{width:260px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+    .ov-bar{height:100%;background:linear-gradient(90deg,var(--blue-dk),var(--blue));border-radius:3px;transition:width .3s}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(4px)}
+    .modal-backdrop.show{display:flex}
+    .modal-box{background:var(--bg2);border-radius:16px;padding:26px 22px;width:92%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:popIn .2s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+    .modal-title{font-size:17px;font-weight:900;margin-bottom:8px}
+    .modal-body{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px}
+    .modal-preview{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;margin-bottom:14px;max-height:220px;overflow-y:auto}
+    .preview-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)}
+    .preview-row:last-child{border-bottom:none}
+    .preview-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:600;padding-right:8px}
+    .preview-price{font-family:var(--mono);color:var(--text2)}
+    .preview-arrow{color:var(--text3);margin:0 5px}
+    .preview-new{font-family:var(--mono);font-weight:700}
+    .preview-new.pon{color:var(--mega-pon)}
+    .preview-new.wari{color:var(--mega-wari)}
+    .preview-new.normal{color:#059669}
+    .modal-btns{display:flex;gap:8px}
+    .modal-btn{flex:1;padding:11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:all .15s}
+    .modal-btn.ghost{background:var(--bg3);border:1.5px solid var(--border);color:var(--text2)}
+    .modal-btn.confirm{background:linear-gradient(135deg,var(--blue-dk),var(--blue));color:#fff}
+    .modal-btn.confirm.pon{background:linear-gradient(135deg,var(--mega-pon),#3b82f6)}
+    .modal-btn.confirm.wari{background:linear-gradient(135deg,var(--mega-wari),#f97316)}
+    .modal-btn.confirm.normal{background:linear-gradient(135deg,#059669,var(--green))}
+    .modal-btn.confirm.sheet{background:linear-gradient(135deg,#1a73e8,var(--sheet))}
+    .modal-btn.confirm:hover{transform:translateY(-1px)}
+
+    /* Apps Script 코드 모달 */
+    .code-block{background:#1e293b;color:#e2e8f0;padding:14px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;overflow-x:auto;max-height:300px;overflow-y:auto;white-space:pre;margin-bottom:12px}
+    .step-list{counter-reset:step;list-style:none;padding:0;margin:0 0 14px 0}
+    .step-list li{counter-increment:step;font-size:12px;line-height:1.7;padding-left:30px;position:relative;margin-bottom:6px;color:var(--text2)}
+    .step-list li::before{content:counter(step);position:absolute;left:0;top:0;width:22px;height:22px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px}
+    .step-list a{color:var(--blue);text-decoration:none;font-weight:700}
+    .step-list a:hover{text-decoration:underline}
+    .step-list code{background:var(--bg3);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text)}
+    .copy-btn{padding:4px 10px;background:var(--blue);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;float:right;font-family:var(--font)}
+    .copy-btn:hover{background:var(--blue-dk)}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:24px;font-size:12px;font-weight:700;background:var(--bg2);border:1.5px solid var(--border);color:var(--text);box-shadow:var(--shadow-lg);display:none;white-space:nowrap;z-index:400}
+    .toast.show{display:block;animation:tIn .2s ease}
+    @keyframes tIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .toast.ok{color:#059669;border-color:#a7f3d0}
+    .toast.err{color:#dc2626;border-color:#fecaca}
+    .toast.info{color:var(--mega-pon);border-color:#bfdbfe}
+
+    .tbl-empty-row td{text-align:center;padding:60px 20px;color:var(--text3)}
+    .tbl-empty-icon{font-size:42px;opacity:.3;margin-bottom:8px}
+
+    .result-log{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;font-family:var(--mono);max-height:100px;overflow-y:auto;color:var(--text2);margin-top:10px;display:none;line-height:1.5}
+    .result-log.show{display:block}
+    .log-ok{color:#059669}
+    .log-err{color:#dc2626}
+    .log-warn{color:#d97706}
+
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:var(--bg)}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="hdr-logo" href="index.html"><div class="hdr-logo-icon">🔍</div>QLens</a>
+  <div class="hdr-divider"></div>
+  <div class="hdr-page">📦 상품 가격관리</div>
+  <div class="hdr-r">
+    <button class="btn-hdr primary" id="btnAutoSync" title="QSM 상품 + 브랜드명 + 배송비를 한 번에 동기화하고 시트에 저장합니다">🔄 전체 자동 동기화</button>
+    <button class="btn-hdr" id="btnLoad" style="display:none">📦 QSM 상품 불러오기</button>
+    <button class="btn-hdr" id="btnLoadPrices" title="RequestFileDownload로 전체 상품 가격+배송비 일괄 수집" style="display:none">💰 가격 일괄 동기화</button>
+    <button class="btn-hdr" id="btnSyncShipFees" title="각 상품의 ShippingNo를 조회하여 그룹 매핑표에서 실제 고객배송비를 자동으로 가져옵니다" style="display:none">📮 배송비 동기화</button>
+    <button class="btn-hdr sheet" id="btnSheetLoad" style="display:none">📥 시트 불러오기</button>
+    <button class="btn-hdr" id="btnShipGroups" title="QSM 셀러센터에 등록된 배송비 그룹(ShippingNo·배송비) 목록을 조회합니다">🚚 배송비 조회</button>
+    <button class="btn-hdr" id="btnSyncFeeRate" title="정산 CSV(sellingreport)를 올려 상품별 실제 수수료율을 자동 입력합니다. 평상시 주문의 서비스수수료÷상품결제금으로 계산">📊 정산CSV 수수료율</button>
+    <input type="file" id="feeRateFileInput" accept=".csv" style="display:none">
+    <button class="btn-hdr primary" id="btnSavePush" title="화면에서 수정한 등록가(¥)를 QSM에 반영 + 시트에 저장. 가져오기 없음 → 내 수정값 유지. (인라인 수정은 더 이상 자동저장 안 됨)">💾 저장+QSM반영</button>
+    <button class="btn-hdr sheet" id="btnSheetSave">📤 시트에 저장</button>
+    <button class="btn-hdr sheet" id="btnOpenSheet" title="연결된 Google 스프레드시트를 새 탭으로 엽니다">📊 스프레드시트 열기</button>
+    <!-- ★ Undo/Redo 버튼 (v1.8.9) -->
+    <button class="btn-hdr btn-undo" id="btnUndo" disabled title="↶ 되돌리기 — Ctrl+Z">↶ 되돌리기<span class="undo-count"></span></button>
+    <button class="btn-hdr btn-undo" id="btnRedo" disabled title="↷ 다시하기 — Ctrl+Shift+Z">↷</button>
+    <button class="btn-hdr" id="btnBackToDashboard">← 대시보드</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- 시트 연결 상태 -->
+  <div class="sheet-status" id="sheetStatus">
+    <div class="icon">📊</div>
+    <div>
+      <div class="label" id="sheetLabel">Google Sheets 연결 확인 중...</div>
+      <div class="sub" id="sheetSub"></div>
+    </div>
+    <div class="actions">
+      <a class="ss-link" id="sheetLink" href="#" target="_blank" style="display:none">시트 열기 →</a>
+      <button class="ss-btn" id="btnSheetInit" title="시트 + 수식 자동 세팅">🔧 시트 자동 세팅</button>
+      <button class="ss-btn" id="btnFixHeaders" title="헤더만 25컬럼으로 갱신 (데이터 보존)" style="background:var(--orange);color:#fff">📋 헤더 갱신</button>
+      <label class="ss-btn" style="cursor:pointer;background:var(--purple-lt);border-color:var(--purple);color:var(--purple)" title="배송비 요율표 CSV 업로드 (형식: 배송사,무게상한kg,요금₩)">
+        📋 요율 CSV
+        <input type="file" id="shipRateCsv" accept=".csv,.txt" style="display:none">
+      </label>
+      <button class="ss-btn" id="btnSheetHelp">📘 Apps Script 가이드</button>
+      <button class="ss-btn primary" id="btnSheetConnect">🔗 시트 연결</button>
+    </div>
+  </div>
+
+  <!-- 행사 설정 (v1.9.13 컴팩트) -->
+  <div class="event-panel">
+    <div class="event-card active-normal" id="cardNormal">
+      <div class="event-card-head" data-target="cardNormal">
+        <div class="event-badge badge-normal">✅ 평상시 가격</div>
+        <span class="event-mode-chip active" id="chipNormal">현재 모드</span>
+        <button class="event-toggle" type="button">▼</button>
+      </div>
+      <div class="event-body">
+        <div class="event-title">소싱가 + 마진</div>
+        <div class="event-desc">소싱처 가격(KRW) × 환율 + 배송비 + 마진율로 평상시 큐텐 판매가를 자동 계산합니다.</div>
+        <div class="rates-grid">
+          <div class="rate-item">
+            <div class="rate-label">환율 (¥→₩)</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rExchangeRate" value="9.5" min="1" max="20" step="0.01"><span class="rate-unit">원</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">기본 배송비 ¥</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rShipFee" value="600" min="0" step="10"><span class="rate-unit">¥</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">기본 마진율</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rMarginRate" value="10" min="0" max="100" step="1"><span class="rate-unit">%</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">큐텐 수수료</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rQFeeRate" value="13" min="0" max="30" step="0.1"><span class="rate-unit">%</span></div>
+          </div>
+        </div>
+        <button class="event-btn normal" id="btnModeNormal">✅ 평상시 모드</button>
+      </div>
+    </div>
+
+    <div class="event-card" id="cardPon">
+      <div class="event-card-head" data-target="cardPon">
+        <div class="event-badge badge-pon">🟦 메가포</div>
+        <span class="event-mode-chip idle" id="chipPon">비활성</span>
+        <button class="event-toggle" type="button">▼</button>
+      </div>
+      <div class="event-body">
+        <div class="event-title">포인트 행사 가격</div>
+        <div class="event-desc">셀러가 포인트 적립 비용을 부담. 평상시 정산금과 동일하도록 인상가 자동 계산.</div>
+        <div class="rates-grid">
+          <div class="rate-item">
+            <div class="rate-label">포인트 적립률</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rMegaponRate" value="10" min="0" max="50" step="1"><span class="rate-unit">%</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">평상시 수수료</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rQFeeRateP" value="13" min="0" max="30" step="0.1" disabled><span class="rate-unit">%</span></div>
+          </div>
+        </div>
+        <button class="event-btn pon" id="btnModePon">🟦 메가포 모드</button>
+      </div>
+    </div>
+
+    <div class="event-card" id="cardWari">
+      <div class="event-card-head" data-target="cardWari">
+        <div class="event-badge badge-wari">🟥 메가와리</div>
+        <span class="event-mode-chip idle" id="chipWari">비활성</span>
+        <button class="event-toggle" type="button">▼</button>
+      </div>
+      <div class="event-body">
+        <div class="event-title">할인 행사 가격</div>
+        <div class="event-desc">고객 할인 + 행사 수수료 + 셀러 부담 합산. 평상시 정산금과 동일하도록 인상가 자동 계산.</div>
+        <div class="rates-grid">
+          <div class="rate-item">
+            <div class="rate-label">고객 할인율</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rMegawariRate" value="20" min="0" max="80" step="1"><span class="rate-unit">%</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">행사 수수료</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rMegawariEventFee" value="13" min="0" max="30" step="0.1"><span class="rate-unit">%</span></div>
+          </div>
+          <div class="rate-item">
+            <div class="rate-label">셀러 부담률</div>
+            <div class="rate-input-row"><input type="number" class="rate-input" id="rMegawariSellerRate" value="10" min="0" max="50" step="1"><span class="rate-unit">%</span></div>
+          </div>
+        </div>
+        <button class="event-btn wari" id="btnModeWari">🟥 메가와리 모드</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요약 -->
+  <div class="summary-bar">
+    <div class="summary-item"><div class="summary-dot" style="background:#059669"></div><span style="color:var(--text2)">판매 중</span><span class="summary-val" id="sumOnSale">-</span></div>
+    <div class="sep"></div>
+    <div class="summary-item"><div class="summary-dot" style="background:var(--text3)"></div><span style="color:var(--text2)">중지</span><span class="summary-val" id="sumStopped">-</span></div>
+    <div class="sep"></div>
+    <div class="summary-item"><div class="summary-dot" style="background:var(--blue)"></div><span style="color:var(--text2)">선택</span><span class="summary-val" id="sumSelected">0</span></div>
+    <div class="sep"></div>
+    <div class="summary-item"><div class="summary-dot" style="background:var(--orange)"></div><span style="color:var(--text2)">미저장 변경</span><span class="summary-val" id="sumDirty">0</span></div>
+    <div class="mode-indicator mode-none" id="modeLabel">✅ 평상시 모드</div>
+  </div>
+
+  <!-- 툴바 -->
+  <div class="toolbar">
+    <input type="text" class="tb-search" id="searchInput" placeholder="🔍 브랜드 / 상품명 / 상품코드 / 소싱처 URL 검색">
+    <select class="tb-select" id="statusFilter">
+      <option value="all">전체</option>
+      <option value="S2">판매 중</option>
+      <option value="S1">품절/대기</option>
+      <option value="S3">단종(폐지)</option>
+      <option value="S0">검수</option>
+    </select>
+    <select class="tb-select" id="srcFilter" title="소싱처별 필터">
+      <option value="all">🛒 소싱처 전체</option>
+      <!-- 실제 데이터에서 자동 추출되어 채워짐 -->
+    </select>
+    <select class="tb-select" id="brandFilter" title="브랜드별 필터 — 선택하면 해당 브랜드만 표시">
+      <option value="all">🏷️ 브랜드 전체</option>
+      <!-- 실제 데이터에서 자동 추출되어 채워짐 -->
+    </select>
+    <select class="tb-select" id="marginFilter" title="마진 상태별 필터">
+      <option value="all">📊 마진 전체</option>
+      <option value="empty">⚪ 미입력 (소싱가 0)</option>
+      <option value="loss">🔴 역마진 위험 (마이너스)</option>
+      <option value="low">🟡 저마진 (0~5%)</option>
+      <option value="mid">⚪ 보통 (5~20%)</option>
+      <option value="high">🟢 고마진 (20% 이상)</option>
+    </select>
+    <select class="tb-select" id="typeFilter" title="상품 유형별 필터">
+      <option value="all">📦 종류 전체</option>
+      <option value="single">📄 단품</option>
+      <option value="bundle">📦 기획세트</option>
+    </select>
+    <button class="tb-btn" id="btnSelectAll">☑ 전체</button>
+    <button class="tb-btn" id="btnSelectNone">☐ 해제</button>
+    <button class="tb-btn" id="btnBulkConvertBundle" title="선택된 상품들을 일괄로 기획세트로 전환" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:transparent">📦 기획 전환</button>
+    <span class="tb-count" id="tbCount">0개</span>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="product-table-wrap">
+    <div class="tbl-scroll">
+      <table id="mainTable" style="table-layout:fixed;width:100%">
+        <colgroup>
+          <col class="col-check">
+          <col class="col-product">
+          <col class="col-source">
+          <col class="col-price-krw">
+          <col class="col-weight">
+          <col class="col-total-cost">
+          <col class="col-qsm-price">
+          <col class="col-carrier">
+          <col class="col-margin-rate">
+          <col class="col-revenue">
+          <col class="col-profit">
+          <col class="col-margin">
+          <col class="col-status">
+          <col class="col-action">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th-check"><input type="checkbox" id="chkAll"></th>
+            <th class="th-product">브랜드 / 상품명</th>
+            <th class="th-source">소싱처</th>
+            <th class="th-price-krw">소싱가<span class="th-sub">원화(₩)</span></th>
+            <th class="th-weight">무게<span class="th-sub">kg / 자동¥</span></th>
+            <th class="th-total-cost">총비용<span class="th-sub">엔화(¥)</span></th>
+            <th class="th-qsm-price">QSM 판매가<span class="th-sub">엔화(¥)</span></th>
+            <th class="th-carrier">배송사</th>
+            <th class="th-margin-rate">고객배송비<span class="th-sub">엔화(¥)</span></th>
+            <th class="th-revenue">총판매액<span class="th-sub">엔화(¥)</span></th>
+            <th class="th-profit">이익<span class="th-sub">엔화(¥)</span></th>
+            <th class="th-margin">마진율<span class="th-sub" id="marginModeHint" style="color:var(--green)">평상시</span></th>
+            <th class="th-status">상태</th>
+            <th class="th-action">작업</th>
+          </tr>
+        </thead>
+        <tbody id="mainTbody">
+          <tr class="tbl-empty-row"><td colspan="14">
+            <div class="tbl-empty-icon">📦</div>
+            <div><strong>상품 불러오기</strong> 버튼을 누르거나, <strong>시트 불러오기</strong>로 기존 데이터를 로드하세요</div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination" style="display:none">
+      <button class="pg-btn" id="pgPrev">← 이전</button>
+      <span class="pg-info" id="pgInfo">1 / 1</span>
+      <button class="pg-btn" id="pgNext">다음 →</button>
+    </div>
+    <div class="bulk-bar" id="bulkBar">
+      <div class="bulk-info" id="bulkInfo">0개 선택됨</div>
+      <div class="bulk-btns">
+        <button class="bulk-btn" id="bulkApplyPrice">💰 현재모드 가격 적용</button>
+        <button class="bulk-btn" id="bulkApplyNormal" title="화면 모드와 무관하게 평상시 추천가(소싱가→환율+배송비+마진)로 등록가를 일괄 복귀. 메가와리 종료 후 사용">🔄 평상시가로 일괄 적용</button>
+        <button class="bulk-btn" id="bulkActivate">▶ 판매 활성화</button>
+        <button class="bulk-btn warn" id="bulkOutOfStock">📭 품절 처리</button>
+        <button class="bulk-btn purple" id="bulkRestock">📦 재입고 처리</button>
+        <button class="bulk-btn danger" id="bulkDeactivate">⏸ 판매 중지</button>
+        <button class="bulk-btn danger" id="bulkDiscontinue">🚫 단종 처리</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-log" id="resultLog"></div>
+
+</div>
+
+<!-- 확인 모달 -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">확인</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-preview" id="modalPreview" style="display:none"></div>
+    <div class="modal-btns">
+      <button class="modal-btn ghost" id="modalCancel">취소</button>
+      <button class="modal-btn confirm" id="modalOk">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- Apps Script 가이드 모달 (v1.5b) -->
+<div class="modal-backdrop" id="appsScriptModal">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-title">📘 Google Apps Script 설정 가이드</div>
+    <div class="modal-body" style="line-height:1.8">
+      <strong>QLens는 Apps Script 파일 전체를 교체하는 방식</strong>으로 설정합니다.<br>
+      기존 코드에 추가하거나 편집할 필요 없이, 아래 파일을 그대로 붙여넣으면 됩니다.
+    </div>
+
+    <ol class="step-list">
+      <li>
+        QLens 설정에서 <strong>Q10Auto_QSMLens_v1.6.1.gs</strong> 파일을 받습니다<br>
+        <small style="color:var(--text3)">QLens 설정 → 스프레드시트 섹션에서 다운로드</small>
+      </li>
+      <li>
+        Google Sheets 열기 → <code>확장 프로그램 → Apps Script</code>
+      </li>
+      <li>
+        에디터에서 <strong>기존 코드 전체를 선택(Ctrl+A)</strong> 후 삭제
+      </li>
+      <li>
+        다운로드한 <strong>.gs 파일 내용 전체를 붙여넣기</strong> → 저장(Ctrl+S)
+      </li>
+      <li>
+        <strong>처음 설치:</strong> 상단 <strong>배포 → 새 배포</strong> → 유형 <strong>웹 앱</strong>
+        → 액세스 <strong>모든 사용자</strong> → <strong>배포</strong> → URL 복사
+      </li>
+      <li>
+        QLens <strong>설정 → webhook URL</strong>에 붙여넣기 → 저장
+      </li>
+      <li>
+        상품관리 탭으로 돌아와 <strong>🔧 시트 자동 세팅</strong>으로 시트를 만든 뒤,
+        <strong>🔄 전체 자동 동기화</strong> 한 번이면 상품·소싱·브랜드·배송비가 한꺼번에 채워집니다
+      </li>
+    </ol>
+
+    <div style="background:rgba(255,122,47,.1);border:1px solid rgba(255,122,47,.35);border-radius:8px;padding:10px 12px;margin:10px 0;font-size:12px;line-height:1.7">
+      <strong style="color:var(--orange)">⚠️ 코드를 수정/업데이트한 경우 — 반드시 "재배포"</strong><br>
+      코드를 붙여넣고 <strong>저장(Ctrl+S)만 하면 반영되지 않습니다.</strong> 기존 /exec 주소는 옛 버전을 계속 실행합니다.<br>
+      → <strong>배포 → 배포 관리 → 연필(편집) → 버전: "새 버전" 선택 → 배포</strong><br>
+      <span style="color:var(--text3)">URL은 그대로 유지됩니다. "새 버전"으로 배포해야 최신 코드가 적용됩니다.</span>
+    </div>
+
+    <div style="background:rgba(61,158,255,.08);border:1px solid rgba(61,158,255,.25);border-radius:8px;padding:10px 12px;margin:10px 0;font-size:12px;line-height:1.7">
+      <strong style="color:var(--blue,#3d9eff)">🩺 데이터가 안 읽힐 때 점검 순서</strong><br>
+      ① 위 "새 버전 재배포"를 했는가 (가장 흔한 원인)<br>
+      ② webhook URL이 <code>/exec</code>로 끝나는가 (끝이 <code>/dev</code>면 안 됨)<br>
+      ③ Apps Script의 <code>SHEET_ID</code>가 현재 시트 URL의 ID와 같은가<br>
+      ④ 시트 탭 이름이 <code>QSM_Lens_Items</code> / <code>QSM_Lens_Sourcing</code>인가
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn ghost" id="btnCloseAppsScript">닫기</button>
+      <button class="modal-btn confirm sheet" id="btnCopyAndOpen">📋 복사 + 시트 열기</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 마진계산기 매핑 모달 -->
+<div class="modal-backdrop" id="marginCalcModal">
+  <div class="modal-box" style="max-width:880px">
+    <div class="modal-title">📊 마진계산기ver3 시트 매칭</div>
+    <div class="modal-body" id="marginCalcDesc">
+      시트에서 데이터를 가져왔습니다. 어느 컬럼이 무엇인지 확인하고 적용해주세요.
+    </div>
+
+    <!-- 자동 감지 결과 -->
+    <div id="autoDetectInfo" style="background:var(--green-lt);border:1px solid #a7f3d0;border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#065f46;line-height:1.6;display:none">
+      <strong>🔍 자동 감지 결과:</strong>
+      <div id="autoDetectText" style="margin-top:5px"></div>
+    </div>
+
+    <!-- 컬럼 매핑 UI -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">상품코드 컬럼</div>
+        <select id="mcColCode" class="tb-select" style="width:100%"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">소싱처 URL 컬럼</div>
+        <select id="mcColUrl" class="tb-select" style="width:100%"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">소싱가(₩) 컬럼 <span style="color:var(--green);font-size:10px">★할인판매가</span></div>
+        <select id="mcColPrice" class="tb-select" style="width:100%"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">배송비(₩) 컬럼 <span style="color:var(--green);font-size:10px">★국제배송비</span></div>
+        <select id="mcColShip" class="tb-select" style="width:100%"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">마진율(%) 컬럼 <span style="color:var(--orange);font-size:10px">★신규</span></div>
+        <select id="mcColMargin" class="tb-select" style="width:100%"></select>
+      </div>
+    </div>
+
+    <!-- 시트 데이터 미리보기 -->
+    <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:5px">시트 미리보기 (상위 5행)</div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:0;margin-bottom:14px;max-height:240px;overflow:auto">
+      <table id="marginCalcPreview" style="width:100%;font-size:11px;border-collapse:collapse">
+        <thead id="marginCalcHead"></thead>
+        <tbody id="marginCalcBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 매칭 결과 요약 -->
+    <div id="matchResult" style="font-size:12px;color:var(--text2);padding:10px 12px;background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:8px;margin-bottom:14px;display:none">
+      <span id="matchResultText"></span>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn ghost" id="btnMarginCalcCancel">취소</button>
+      <button class="modal-btn confirm sheet" id="btnMarginCalcApply">✅ 매칭 결과 적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- 재입고 수량 입력 모달 -->
+<div class="qty-modal-backdrop" id="qtyModal">
+  <div class="qty-modal-box">
+    <div class="qty-modal-title">📦 <span id="qtyModalTitle">재입고 처리</span></div>
+    <div class="qty-modal-desc" id="qtyModalDesc">재고수량을 입력하면 QSM 판매가능 상태로 자동 변경됩니다.</div>
+    <div class="qty-modal-items" id="qtyModalItems"></div>
+    <div class="qty-input-row">
+      <span class="qty-input-label">재입고 수량</span>
+      <input type="number" class="qty-input" id="qtyInput" min="1" max="99999" value="100" placeholder="수량">
+      <span class="qty-input-unit">개</span>
+    </div>
+    <div class="qty-modal-note" id="qtyModalNote">
+      ✅ <strong>판매가능(2)</strong> 상태로 변경 + 입력한 수량으로 설정됩니다.<br>
+      API: <code>ItemsBasic.EditGoodsStatus</code> → <code>ItemsOrder.SetGoodsPriceQty</code>
+    </div>
+    <div class="qty-modal-btns">
+      <button class="qty-modal-btn ghost" id="qtyModalCancel">취소</button>
+      <button class="qty-modal-btn confirm" id="qtyModalOk">✅ 재입고 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- 가격+수량 일괄 수정 모달 -->
+<div class="qty-modal-backdrop" id="priceQtyModal">
+  <div class="qty-modal-box" style="max-width:480px">
+    <div class="qty-modal-title">💰 가격/수량 직접 수정</div>
+    <div class="qty-modal-desc">선택한 상품의 QSM 판매가격과 재고수량을 직접 수정합니다.<br>빈 칸은 변경하지 않습니다.</div>
+    <div class="qty-modal-items" id="priceQtyItems"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">판매가격(¥) <span style="color:var(--text3);font-weight:400">빈칸=유지</span></div>
+        <input type="number" id="pqPrice" class="qty-input" style="width:100%" min="1" placeholder="예: 1980" value="">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">재고수량 <span style="color:var(--text3);font-weight:400">기본 99 · 빈칸=유지</span></div>
+        <input type="number" id="pqQty" class="qty-input" style="width:100%" min="0" placeholder="예: 99" value="99">
+      </div>
+      <div style="grid-column:1/-1">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">판매종료일 <span style="color:var(--text3);font-weight:400">빈칸=유지</span></div>
+        <input type="date" id="pqExpire" class="qty-input" style="width:100%;text-align:left;font-family:var(--mono)">
+      </div>
+    </div>
+    <div class="qty-modal-note">
+      📡 API: <code>ItemsOrder.SetGoodsPriceQty</code><br>
+      ⚠️ 판매가=0 입력 시 현재가 유지 / 수량=0 입력 시 품절 처리됩니다.
+    </div>
+    <div class="qty-modal-btns">
+      <button class="qty-modal-btn ghost" id="priceQtyCancel">취소</button>
+      <button class="qty-modal-btn confirm" style="background:linear-gradient(135deg,var(--blue-dk),var(--blue))" id="priceQtyOk">💰 QSM 수정 적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- 로딩 -->
+<div class="overlay" id="overlay">
+  <div class="spin"></div>
+  <div class="ov-title" id="ovTitle">처리 중...</div>
+  <div class="ov-sub" id="ovSub"></div>
+  <div class="ov-progress"><div class="ov-bar" id="ovBar" style="width:0%"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="item_manager.js"></script>
+</body>
+</html>

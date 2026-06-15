@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="lensgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="lensshine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="glassgrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#dbeafe" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main rounded square background -->
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="url(#lensgrad)"/>
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="url(#lensshine)"/>
+
+  <!-- 돋보기 렌즈 (큰 원) -->
+  <circle cx="56" cy="56" r="28" fill="url(#glassgrad)" stroke="#ffffff" stroke-width="6"/>
+
+  <!-- 렌즈 안에 미니 차트 (분석 의미) -->
+  <g transform="translate(40 68)">
+    <!-- 막대 그래프 3개 -->
+    <rect x="0" y="-8" width="6" height="8" rx="1" fill="#1d4ed8"/>
+    <rect x="9" y="-16" width="6" height="16" rx="1" fill="#1d4ed8"/>
+    <rect x="18" y="-22" width="6" height="22" rx="1" fill="#10b981"/>
+    <!-- 상승 화살표 -->
+    <path d="M 26 -22 L 32 -28 M 28 -28 L 32 -28 L 32 -24"
+          stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- 돋보기 손잡이 -->
+  <line x1="77" y1="77" x2="100" y2="100" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+  <line x1="77" y1="77" x2="100" y2="100" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+</svg>
