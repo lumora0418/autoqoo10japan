@@ -3802,7 +3802,7 @@ function showCsvImportModal(header, dataRows) {
   };
 }
 
-function applyCsvImport(plan) {
+async function applyCsvImport(plan) {
   const r = getRates();
   let matched = 0, added = 0;
   plan.forEach(p => {
@@ -3832,8 +3832,18 @@ function applyCsvImport(plan) {
   });
   _saveLocalCache().catch(() => {});
   applyFilter(); updateSummary();
-  toast(`✅ 가져오기 완료 — 매칭 ${matched}개, 신규 ${added}개. [📤 시트에 저장]으로 반영하세요`, 'ok');
   log(`CSV 가져오기: 매칭 ${matched}, 신규 ${added}`, 'ok');
+  // ★ 가져온 데이터를 스프레드시트에 바로 자동 저장 (신규 행은 변경감지가 안 돼 수동저장이 누락되던 문제 방지)
+  if (_webhookUrl) {
+    try {
+      await saveToSheet();
+      toast(`✅ 가져오기 + 시트 저장 완료 — 매칭 ${matched}, 신규 ${added}`, 'ok');
+    } catch (e) {
+      toast(`⚠️ 가져오기 ${matched + added}개 (시트 저장 실패: ${e.message}) — [📤 시트에 저장] 다시 시도`, 'err');
+    }
+  } else {
+    toast(`✅ 가져오기 완료 — 매칭 ${matched}, 신규 ${added}. 시트 webhook 연결 후 [📤 시트에 저장]`, 'err');
+  }
 }
 
 async function syncFeeRatesFromSettlement(file) {
