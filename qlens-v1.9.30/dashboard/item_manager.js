@@ -1212,7 +1212,7 @@ async function diagnoseSheets() {
     const d = await postToWebhook('LENS_DIAG');
     if (d && d.ok) {
       const s = d.sheets || {};
-      log(`🩺 연결된 시트 "${d.spreadsheetName}" — Items:${s.QSM_Lens_Items} / Sourcing:${s.QSM_Lens_Sourcing} / 요율:${s.QSM_Lens_AgencyRate}`, 'ok');
+      log(`🩺 연결된 시트 "${d.spreadsheetName}" — Items:${s.QSM_Lens_Items} / Config:${s.QSM_Lens_Config} / Bundles:${s.QSM_Lens_Bundles} / ShipRates:${s.QSM_Lens_ShipRates}`, 'ok');
       return d;
     }
     // LENS_DIAG 자체가 실패 = 구버전 배포 가능성
@@ -1226,16 +1226,16 @@ async function autoSyncAll() {
   const btn = document.getElementById('btnAutoSync');
   if (btn) btn.disabled = true;
   try {
-    showOv('전체 자동 동기화', '① 상품 → ② 소싱 → ③ 브랜드 → ④ 배송비 → ⑤ 저장', 2);
+    showOv('전체 자동 동기화', '① 상품 → ② 브랜드 → ③ 배송비 → ④ 저장', 2);
 
-    // 0) 연결 진단 — 웹훅이 어떤 시트를 보는지 먼저 확인
+    // 0) 연결 진단 — 웹훅이 메인 시트(QSM_Lens_Items)를 보는지 확인
     const diag = await diagnoseSheets();
     if (diag && diag.ok && diag.sheets &&
-        (diag.sheets.QSM_Lens_Sourcing === '시트없음')) {
+        (diag.sheets.QSM_Lens_Items === '시트없음')) {
       hideOv();
-      alert('⚠️ QSM_Lens_Sourcing 시트가 없습니다\n\n' +
+      alert('⚠️ QSM_Lens_Items 시트가 없습니다\n\n' +
         `현재 연결된 시트: "${diag.spreadsheetName}"\n\n` +
-        '● 해결방법: 이 스프레드시트에 QSM_Lens_Sourcing 탭을 만들거나, [🔧 시트 자동 세팅]을 먼저 실행하세요.');
+        '● 해결방법: 먼저 상단 [🔧 시트 자동 세팅]을 한 번 실행해 시트를 생성하세요.');
       if (btn) btn.disabled = false;
       return;
     }

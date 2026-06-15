@@ -1225,7 +1225,7 @@ function lensBrandApply(ss, resolved, unresolved){
 function lensDiag(ss) {
   const info = { ok:true, sheetId: SHEET_ID, spreadsheetName: '', sheets: {} };
   try { info.spreadsheetName = ss.getName(); } catch(e) {}
-  ['QSM_Lens_Items','QSM_Lens_Sourcing','QSM_Lens_AgencyRate','QSM_Lens_Config'].forEach(nm=>{
+  ['QSM_Lens_Items','QSM_Lens_Config','QSM_Lens_Bundles','QSM_Lens_ShipRates'].forEach(nm=>{
     const sh = ss.getSheetByName(nm);
     info.sheets[nm] = sh ? Math.max(sh.getLastRow()-1,0) : '시트없음';
   });
