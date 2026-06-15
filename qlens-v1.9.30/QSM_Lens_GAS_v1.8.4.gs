@@ -418,7 +418,8 @@ function lensLoad(sheet){
     componentCount:  +r[26] ||0,          // AA 구성품 수 ★ v1.6
     // r[27]=AB 브랜드코드(읽기 생략) / AC 상품별 수수료율%
     qFeeRate:        +r[28] ||'',          // AC 수수료율% (빈값=기본 수수료) ★ v1.8.3
-  })).filter(i=>i.code);
+  // ★ v1.8.4: ItemCode 없는 행(CSV 가져오기로 추가한 큐텐 미등록 상품)도 로드 — 한국어 상품명으로 식별
+  })).filter(i=>i.code || i.sellerCode);
   return {ok:true,items};
 }
 

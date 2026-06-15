@@ -3680,6 +3680,162 @@ function _parseSettlementCSV(text) {
   return rows;
 }
 
+/* ══════════════════════════════════════════════════════
+   📤 CSV 가져오기 — 기존 마진계산기/상품관리 데이터를
+   한국어 상품명으로 매칭해 소싱처·링크·소싱가 채우기 (없으면 신규 행 추가)
+══════════════════════════════════════════════════════ */
+// 매칭용 정규화 (공백/특수문자 제거 + 소문자 — 표기 차이 흡수, 그래도 '정확 일치'만)
+function _csvNorm(s) {
+  return String(s || '').toLowerCase().replace(/[\s\[\]()（）【】·,./_\-]/g, '').trim();
+}
+// 헤더 키워드로 열 자동 추측 (없으면 -1)
+function _guessCol(header, keywords) {
+  for (let i = 0; i < header.length; i++) {
+    const h = _csvNorm(header[i]);
+    if (h && keywords.some(k => h.includes(k))) return i;
+  }
+  return -1;
+}
+
+async function handleCsvImportFile(file) {
+  try {
+    const text = await file.text();
+    const rows = _parseSettlementCSV(text);
+    const header = (rows[0] || []).map(h => String(h || '').trim());
+    const dataRows = rows.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+    if (!header.length || !dataRows.length) { toast('CSV에 데이터가 없습니다', 'err'); return; }
+    showCsvImportModal(header, dataRows);
+  } catch (e) {
+    toast('❌ CSV 읽기 실패: ' + e.message, 'err');
+  }
+}
+
+function showCsvImportModal(header, dataRows) {
+  document.getElementById('csvImportBackdrop')?.remove();
+
+  const opts = (guess, withNone) =>
+    (withNone ? '<option value="-1">(없음)</option>' : '') +
+    header.map((h, i) => `<option value="${i}" ${i === guess ? 'selected' : ''}>${i + 1}열: ${(h || '(빈 헤더)').replace(/</g, '&lt;')}</option>`).join('');
+
+  const gName  = _guessCol(header, ['상품명', '품명', '제품명', '상품', '이름', 'name', '한국어', '품목']);
+  const gSite  = _guessCol(header, ['소싱처', '판매처', '매입처', '구매처', '사이트', '쇼핑몰', 'site', '출처', '채널']);
+  const gUrl   = _guessCol(header, ['url', 'link', '링크', '주소', '소싱url', '소싱링크', '페이지']);
+  const gPrice = _guessCol(header, ['소싱가', '매입가', '구매가', '원가', '사입가', '단가', 'price', 'cost', '금액', '가격']);
+  const gWeight= _guessCol(header, ['무게', '중량', 'weight', 'kg']);
+  const gMargin= _guessCol(header, ['마진', 'margin']);
+
+  const bd = document.createElement('div');
+  bd.id = 'csvImportBackdrop';
+  bd.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  bd.innerHTML = `
+    <div style="background:var(--bg2,#14141f);border:1px solid var(--border,#2e2e45);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:22px;color:var(--text,#eee)">
+      <div style="font-size:16px;font-weight:800;margin-bottom:4px">📤 CSV 가져오기 — 열 지정</div>
+      <div style="font-size:12px;color:var(--text2,#8aa);margin-bottom:14px">CSV ${dataRows.length}행. 각 항목이 CSV의 <b>어느 열</b>인지 골라주세요. (한국어 상품명으로 매칭됩니다)</div>
+      ${[
+        ['매칭 기준 — 한국어 상품명 ★', 'csvMapName', gName, false],
+        ['소싱처 (올리브영 등)', 'csvMapSite', gSite, true],
+        ['소싱처 링크(URL)', 'csvMapUrl', gUrl, true],
+        ['소싱가(₩) ★', 'csvMapPrice', gPrice, true],
+        ['무게(kg) — 선택', 'csvMapWeight', gWeight, true],
+        ['마진율(%) — 선택', 'csvMapMargin', gMargin, true],
+      ].map(([label, id, g, none]) => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+          <div style="flex:0 0 175px;font-size:12px;font-weight:600;color:var(--text2,#8aa)">${label}</div>
+          <select id="${id}" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border,#2e2e45);background:var(--bg3,#1c1c2e);color:var(--text,#eee);font-size:12px">${opts(g, none)}</select>
+        </div>`).join('')}
+      <div id="csvImportPreview" style="margin-top:12px;padding:11px 13px;background:var(--bg3,#1c1c2e);border-radius:8px;font-size:12px;line-height:1.7;color:var(--text2,#8aa);min-height:20px">아래 [미리보기]를 눌러 매칭 결과를 확인하세요.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button id="csvImportCancel" style="padding:9px 16px;border-radius:8px;border:1px solid var(--border,#2e2e45);background:transparent;color:var(--text2,#8aa);font-weight:700;cursor:pointer">취소</button>
+        <button id="csvImportPreviewBtn" style="padding:9px 16px;border-radius:8px;border:1px solid var(--blue,#3d9eff);background:transparent;color:var(--blue,#3d9eff);font-weight:700;cursor:pointer">🔍 미리보기</button>
+        <button id="csvImportApply" style="padding:9px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1a73e8,#4f9eff);color:#fff;font-weight:800;cursor:pointer">✅ 가져오기</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bd);
+
+  const readMap = () => ({
+    name:   +document.getElementById('csvMapName').value,
+    site:   +document.getElementById('csvMapSite').value,
+    url:    +document.getElementById('csvMapUrl').value,
+    price:  +document.getElementById('csvMapPrice').value,
+    weight: +document.getElementById('csvMapWeight').value,
+    margin: +document.getElementById('csvMapMargin').value,
+  });
+  // 매칭 계산
+  const computeImport = (m) => {
+    const idx = {};
+    allProducts.forEach(p => { const k = _csvNorm(p.sellerCode || p.seller || ''); if (k) idx[k] = p; });
+    let matched = 0, added = 0, skipped = 0;
+    const plan = [];
+    dataRows.forEach(r => {
+      const nm = (r[m.name] || '').trim();
+      const key = _csvNorm(nm);
+      if (!key) { skipped++; return; }
+      const price = m.price >= 0 ? parseInt(String(r[m.price]).replace(/[^\d]/g, '')) || 0 : 0;
+      const site  = m.site  >= 0 ? (r[m.site] || '').trim() : '';
+      const url   = m.url   >= 0 ? (r[m.url] || '').trim()  : '';
+      const wt    = m.weight>= 0 ? parseFloat(String(r[m.weight]).replace(/[^\d.]/g, '')) || 0 : 0;
+      const mg    = m.margin>= 0 ? parseFloat(String(r[m.margin]).replace(/[^\d.]/g, '')) || 0 : 0;
+      const hit = idx[key];
+      if (hit) matched++; else added++;
+      plan.push({ nm, key, price, site, url, wt, mg, hit });
+    });
+    return { matched, added, skipped, plan };
+  };
+
+  document.getElementById('csvImportCancel').onclick = () => bd.remove();
+  document.getElementById('csvImportPreviewBtn').onclick = () => {
+    const m = readMap();
+    if (m.name < 0) { toast('매칭 기준(한국어 상품명) 열을 골라주세요', 'err'); return; }
+    const { matched, added, skipped, plan } = computeImport(m);
+    const sample = plan.slice(0, 4).map(p =>
+      `${p.hit ? '✅ 매칭' : '➕ 신규'} · ${p.nm.slice(0, 22)} ${p.price ? '₩' + p.price.toLocaleString() : ''}`).join('<br>');
+    document.getElementById('csvImportPreview').innerHTML =
+      `<b style="color:var(--text,#eee)">매칭 ${matched}개 · 신규추가 ${added}개</b>${skipped ? ` · 건너뜀 ${skipped}개(상품명 없음)` : ''}<br>` +
+      `<span style="color:var(--text3,#667)">${sample || '대상 없음'}${plan.length > 4 ? '<br>…' : ''}</span>`;
+  };
+  document.getElementById('csvImportApply').onclick = () => {
+    const m = readMap();
+    if (m.name < 0)  { toast('매칭 기준(한국어 상품명) 열을 골라주세요', 'err'); return; }
+    if (m.price < 0 && m.site < 0 && m.url < 0) { toast('가져올 값(소싱가/소싱처/링크) 중 하나는 골라주세요', 'err'); return; }
+    applyCsvImport(computeImport(m).plan);
+    bd.remove();
+  };
+}
+
+function applyCsvImport(plan) {
+  const r = getRates();
+  let matched = 0, added = 0;
+  plan.forEach(p => {
+    if (p.hit) {
+      const it = p.hit;
+      if (p.site)  it.sourcingSite = p.site;
+      if (p.url)   { it.sourceUrl = p.url; if (!it.sourcingSite) it.sourcingSite = detectSourcingSite(it); }
+      if (p.price) it.sourcePrice = p.price;
+      if (p.wt)    it.weight = p.wt;
+      if (p.mg)    it.marginRate = p.mg;
+      it.basePrice = calcBasePrice(it.sourcePrice, it.shipFee, it.marginRate, rateFor(it, r), it.customerShipJpy);
+      if (it.code) _dirty.add(it.code);
+      matched++;
+    } else {
+      const np = {
+        code: '', seller: p.nm, sellerCode: p.nm, name: '', brand: '',
+        status: 'S2', sourcingSite: p.site || (p.url ? detectSourcingSite({ sourceUrl: p.url }) : ''),
+        sourceUrl: p.url || '', sourcePrice: p.price || 0,
+        weight: p.wt || 0.5, carrier: '', marginRate: p.mg || '',
+        curPrice: 0, customerShipJpy: 0, basePrice: 0, memo: 'CSV 가져오기',
+        itemType: 'single', componentCount: 0, qFeeRate: '',
+      };
+      np.basePrice = calcBasePrice(np.sourcePrice, np.shipFee, np.marginRate, rateFor(np, r), np.customerShipJpy);
+      allProducts.push(np);
+      added++;
+    }
+  });
+  _saveLocalCache().catch(() => {});
+  applyFilter(); updateSummary();
+  toast(`✅ 가져오기 완료 — 매칭 ${matched}개, 신규 ${added}개. [📤 시트에 저장]으로 반영하세요`, 'ok');
+  log(`CSV 가져오기: 매칭 ${matched}, 신규 ${added}`, 'ok');
+}
+
 async function syncFeeRatesFromSettlement(file) {
   try {
     const text = await file.text();
@@ -4143,6 +4299,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('feeRateFileInput')?.addEventListener('change', e => {
     const f = e.target.files[0];
     if (f) syncFeeRatesFromSettlement(f);
+    e.target.value = '';
+  });
+
+  // 📤 CSV 가져오기 (기존 마진계산기/상품관리 데이터 → 소싱처·링크·소싱가 매칭/추가)
+  document.getElementById('btnImportCsv')?.addEventListener('click', () => document.getElementById('csvImportInput')?.click());
+  document.getElementById('csvImportInput')?.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) handleCsvImportFile(f);
     e.target.value = '';
   });
 
