@@ -478,7 +478,8 @@
     <button class="btn-hdr" id="btnShipGroups" title="QSM 셀러센터에 등록된 배송비 그룹(ShippingNo·배송비) 목록을 조회합니다">🚚 배송비 조회</button>
     <button class="btn-hdr" id="btnSyncFeeRate" title="정산 CSV(sellingreport)를 올려 상품별 실제 수수료율을 자동 입력합니다. 평상시 주문의 서비스수수료÷상품결제금으로 계산">📊 정산CSV 수수료율</button>
     <input type="file" id="feeRateFileInput" accept=".csv" style="display:none">
-    <button class="btn-hdr sheet" id="btnImportCsv" title="기존 마진계산기/상품관리 엑셀을 CSV로 저장해 올리면, 한국어 상품명으로 매칭해 소싱처·링크·소싱가를 채웁니다 (없는 상품은 새 행으로 추가)">📤 CSV 가져오기</button>
+    <button class="btn-hdr sheet" id="btnExportCsv" title="현재 상품을 ItemCode 포함 CSV 양식으로 내보냅니다. 엑셀에서 소싱가만 채워 다시 가져오면 ItemCode로 100% 정확 매칭됩니다">📥 양식 내보내기</button>
+    <button class="btn-hdr sheet" id="btnImportCsv" title="기존 마진계산기/상품관리 엑셀을 CSV로 저장해 올리면, 판매자관리코드/한국어상품명 또는 ItemCode로 매칭해 소싱처·링크·소싱가를 채웁니다">📤 CSV 가져오기</button>
     <input type="file" id="csvImportInput" accept=".csv" style="display:none">
     <button class="btn-hdr primary" id="btnSavePush" title="화면에서 수정한 등록가(¥)를 QSM에 반영 + 시트에 저장. 가져오기 없음 → 내 수정값 유지. (인라인 수정은 더 이상 자동저장 안 됨)">💾 저장+QSM반영</button>
     <button class="btn-hdr sheet" id="btnSheetSave">📤 시트에 저장</button>
