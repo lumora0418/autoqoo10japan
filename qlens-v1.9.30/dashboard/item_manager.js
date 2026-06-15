@@ -3814,17 +3814,21 @@ function showCsvImportModal(header, dataRows) {
 
 async function applyCsvImport(plan, unmatchedMode) {
   const r = getRates();
-  let matched = 0, added = 0, skipped = 0;
+  let matched = 0, changed = 0, added = 0, skipped = 0;
   plan.forEach(p => {
     if (p.hit) {
       const it = p.hit;
-      if (p.site)  it.sourcingSite = p.site;
-      if (p.url)   { it.sourceUrl = p.url; if (!it.sourcingSite) it.sourcingSite = detectSourcingSite(it); }
-      if (p.price) it.sourcePrice = p.price;
-      if (p.wt)    it.weight = p.wt;
-      if (p.mg)    it.marginRate = p.mg;
-      it.basePrice = calcBasePrice(it.sourcePrice, it.shipFee, it.marginRate, rateFor(it, r), it.customerShipJpy);
-      if (it.code) _dirty.add(it.code);
+      let ch = false;
+      if (p.site)  { it.sourcingSite = p.site; ch = true; }
+      if (p.url)   { it.sourceUrl = p.url; if (!it.sourcingSite) it.sourcingSite = detectSourcingSite(it); ch = true; }
+      if (p.price) { it.sourcePrice = p.price; ch = true; }
+      if (p.wt)    { it.weight = p.wt; ch = true; }
+      if (p.mg)    { it.marginRate = p.mg; ch = true; }
+      if (ch) {
+        it.basePrice = calcBasePrice(it.sourcePrice, it.shipFee, it.marginRate, rateFor(it, r), it.customerShipJpy);
+        if (it.code) _dirty.add(it.code);
+        changed++;
+      }
       matched++;
     } else if (unmatchedMode === 'add') {
       const np = {
@@ -3845,12 +3849,21 @@ async function applyCsvImport(plan, unmatchedMode) {
   });
   _saveLocalCache().catch(() => {});
   applyFilter(); updateSummary();
-  log(`CSV 가져오기: 매칭 ${matched}, 신규 ${added}, 미매칭건너뜀 ${skipped}`, 'ok');
+  log(`CSV 가져오기: 매칭 ${matched}(실변경 ${changed}), 신규 ${added}, 미매칭건너뜀 ${skipped}`, 'ok');
+  // ★ 매칭은 됐지만 채워진 값이 0이면(소싱가/소싱처/링크 열 미지정) — 변화 없음을 명확히 안내
+  if (matched > 0 && changed === 0 && added === 0) {
+    toast(`⚠️ 매칭 ${matched}개지만 채워진 값이 없습니다 — 가져오기 모달에서 '소싱가/소싱처/링크' 열이 (없음)이 아닌지 확인하세요`, 'err');
+    return;
+  }
+  if (changed === 0 && added === 0) {
+    toast('가져올 변경사항이 없습니다 (매칭/값 열을 확인하세요)', 'err');
+    return;
+  }
   // ★ 가져온 데이터를 스프레드시트에 바로 자동 저장 (신규 행은 변경감지가 안 돼 수동저장이 누락되던 문제 방지)
   if (_webhookUrl) {
     try {
       await saveToSheet();
-      toast(`✅ 가져오기 + 시트 저장 — 매칭 ${matched}${added ? `, 신규 ${added}` : ''}${skipped ? `, 미매칭 ${skipped}건너뜀` : ''}`, 'ok');
+      toast(`✅ 시트 저장 완료 — 값 채움 ${changed}개${added ? `, 신규 ${added}` : ''}${skipped ? `, 미매칭 ${skipped}건너뜀` : ''}`, 'ok');
     } catch (e) {
       toast(`⚠️ 가져오기 ${matched + added}개 (시트 저장 실패: ${e.message}) — [📤 시트에 저장] 다시 시도`, 'err');
     }
